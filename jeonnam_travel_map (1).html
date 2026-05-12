@@ -1,0 +1,348 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전라남도 여행 지도 공유하기</title>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --primary: #3b82f6;
+            --secondary: #10b981;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            padding: 30px;
+            text-align: center;
+        }
+
+        h1 { margin-bottom: 10px; font-size: 1.5rem; color: #0f172a; }
+        p { color: var(--text-sub); margin-bottom: 30px; }
+
+        .map-section {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+
+        svg {
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.1));
+        }
+
+        .region {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            stroke: #fff;
+            stroke-width: 1.5;
+        }
+
+        .region:hover {
+            opacity: 0.8;
+            transform: scale(1.01);
+        }
+
+        .label-group { pointer-events: none; }
+        .label-text { font-size: 12px; font-weight: bold; fill: #333; text-anchor: middle; }
+        .count-badge { font-size: 10px; fill: #fff; font-weight: bold; }
+
+        .btn-plus {
+            cursor: pointer;
+            fill: #3b82f6;
+            transition: transform 0.1s;
+        }
+        .btn-plus:active { transform: scale(1.2); }
+
+        /* Detail Overlay */
+        #detail-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            color: white;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 40px;
+            box-sizing: border-box;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 30px; right: 30px;
+            font-size: 40px; cursor: pointer;
+        }
+
+        .share-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .btn-action {
+            padding: 12px 24px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-save { background: #3b82f6; color: white; }
+        .btn-link { background: #10b981; color: white; }
+        .btn-reset { background: #ef4444; color: white; }
+
+        @media (max-width: 600px) {
+            .container { padding: 15px; }
+            .btn-action { padding: 10px 16px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="capture-area">
+    <h1>🎨 나만의 전남 여행 지도</h1>
+    <p>지역을 클릭해 정보를 확인하고, + 버튼으로 방문 횟수를 체크하세요!</p>
+    
+    <div class="map-section">
+        <svg viewBox="0 0 500 500" id="jeonnam-svg">
+            <!-- 시각화를 위한 간소화된 전남 SVG (실제 상용 레벨에선 정밀 좌표 사용) -->
+            <!-- 서북부 -->
+            <path id="path-영광" class="region" d="M100,100 L150,80 L180,120 L140,160 Z" fill="#e2e8f0" onclick="showDetail('영광')"/>
+            <path id="path-장성" class="region" d="M150,80 L220,70 L240,110 L180,120 Z" fill="#e2e8f0" onclick="showDetail('장성')"/>
+            <path id="path-담양" class="region" d="M220,70 L290,80 L310,130 L240,110 Z" fill="#e2e8f0" onclick="showDetail('담양')"/>
+            
+            <!-- 중부/광주인근 -->
+            <path id="path-나주" class="region" d="M180,120 L240,110 L260,180 L170,190 Z" fill="#e2e8f0" onclick="showDetail('나주')"/>
+            <path id="path-화순" class="region" d="M240,110 L310,130 L330,200 L260,180 Z" fill="#e2e8f0" onclick="showDetail('화순')"/>
+            <path id="path-함평" class="region" d="M140,160 L180,120 L170,190 L120,200 Z" fill="#e2e8f0" onclick="showDetail('함평')"/>
+            <path id="path-무안" class="region" d="M120,200 L170,190 L160,240 L100,240 Z" fill="#e2e8f0" onclick="showDetail('무안')"/>
+            <path id="path-목포" class="region" d="M100,240 L130,240 L130,270 L100,270 Z" fill="#e2e8f0" onclick="showDetail('목포')"/>
+
+            <!-- 동부권 -->
+            <path id="path-곡성" class="region" d="M290,80 L360,90 L380,140 L310,130 Z" fill="#e2e8f0" onclick="showDetail('곡성')"/>
+            <path id="path-구례" class="region" d="M360,90 L430,100 L440,150 L380,140 Z" fill="#e2e8f0" onclick="showDetail('구례')"/>
+            <path id="path-순천" class="region" d="M330,200 L400,190 L420,250 L350,260 Z" fill="#e2e8f0" onclick="showDetail('순천')"/>
+            <path id="path-광양" class="region" d="M400,190 L460,180 L480,240 L420,250 Z" fill="#e2e8f0" onclick="showDetail('광양')"/>
+            <path id="path-여수" class="region" d="M380,250 L450,250 L430,330 L360,320 Z" fill="#e2e8f0" onclick="showDetail('여수')"/>
+
+            <!-- 남부권 -->
+            <path id="path-보성" class="region" d="M280,230 L350,260 L330,320 L270,300 Z" fill="#e2e8f0" onclick="showDetail('보성')"/>
+            <path id="path-장흥" class="region" d="M230,250 L280,230 L270,300 L210,320 Z" fill="#e2e8f0" onclick="showDetail('장흥')"/>
+            <path id="path-강진" class="region" d="M180,250 L230,250 L210,320 L160,310 Z" fill="#e2e8f0" onclick="showDetail('강진')"/>
+            <path id="path-영암" class="region" d="M170,190 L260,180 L230,250 L180,250 Z" fill="#e2e8f0" onclick="showDetail('영암')"/>
+            <path id="path-해남" class="region" d="M130,270 L180,250 L160,350 L100,340 Z" fill="#e2e8f0" onclick="showDetail('해남')"/>
+            <path id="path-완도" class="region" d="M150,360 L220,360 L210,420 L140,410 Z" fill="#e2e8f0" onclick="showDetail('완도')"/>
+            <path id="path-진도" class="region" d="M50,350 L100,340 L90,400 L40,390 Z" fill="#e2e8f0" onclick="showDetail('진도')"/>
+            <path id="path-고흥" class="region" d="M320,320 L380,330 L360,420 L300,410 Z" fill="#e2e8f0" onclick="showDetail('고흥')"/>
+            <path id="path-신안" class="region" d="M40,200 L100,200 L80,280 L30,280 Z" fill="#e2e8f0" onclick="showDetail('신안')"/>
+
+            <!-- 텍스트 및 플러스 버튼 레이어 -->
+            <g id="labels"></g>
+        </svg>
+    </div>
+
+    <div class="share-controls">
+        <button class="btn-action btn-save" onclick="saveAsImage()">📸 이미지로 저장</button>
+        <button class="btn-action btn-link" onclick="copyShareLink()">🔗 공유 링크 복사</button>
+        <button class="btn-action btn-reset" onclick="resetData()">♻️ 초기화</button>
+    </div>
+</div>
+
+<div id="detail-overlay">
+    <span class="close-btn" onclick="closeDetail()">&times;</span>
+    <h2 id="detail-name">지역명</h2>
+    <p id="detail-spot" style="font-size: 1.2rem; color: #3b82f6;"></p>
+    <p id="detail-addr" style="color: #94a3b8;"></p>
+    <p id="detail-desc" style="max-width: 500px; line-height: 1.6;"></p>
+    <div style="margin-top: 30px; display: flex; align-items: center; gap: 20px;">
+        <button onclick="updateCount(-1)" style="width:50px; height:50px; border-radius:50%; border:1px solid white; background:none; color:white; font-size:24px;">-</button>
+        <span id="detail-count" style="font-size: 32px; font-weight: bold;">0</span>
+        <button onclick="updateCount(1)" style="width:50px; height:50px; border-radius:50%; background:white; color:black; border:none; font-size:24px;">+</button>
+    </div>
+</div>
+
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script>
+    const regions = {
+        '목포': { spot: '목포해상케이블카', addr: '목포시 해양대학로 240', desc: '유달산과 다도해를 한눈에!', x: 115, y: 255, color: '#FF9AA2' },
+        '여수': { spot: '오동도', addr: '여수시 오동도로 242', desc: '밤바다와 동백꽃의 낭만', x: 410, y: 290, color: '#FFB7B2' },
+        '순천': { spot: '순천만국가정원', addr: '순천시 국가정원1호길 47', desc: '대한민국 1호 국가정원', x: 380, y: 220, color: '#FFDAC1' },
+        '나주': { spot: '금성관', addr: '나주시 금성관길 8', desc: '호남 최대 규모의 객사', x: 215, y: 155, color: '#E2F0CB' },
+        '광양': { spot: '매화마을', addr: '광양시 다압면 섬진강매화로 1563-1', desc: '봄의 시작을 알리는 하얀 매화', x: 440, y: 215, color: '#B5EAD7' },
+        '담양': { spot: '죽녹원', addr: '담양군 담양읍 죽녹원로 119', desc: '울창한 대나무 숲의 힐링', x: 270, y: 95, color: '#C7CEEA' },
+        '장성': { spot: '축령산 편백숲', addr: '장성군 서삼면 모암길 153-150', desc: '국내 최대 편백나무 조림지', x: 190, y: 95, color: '#F8BBD0' },
+        '함평': { spot: '함평엑스포공원', addr: '함평군 함평읍 곤재로 27', desc: '나비와 꽃의 아름다운 만남', x: 145, y: 175, color: '#E1BEE7' },
+        '영광': { spot: '백수해안도로', addr: '영광군 백수읍 해안로', desc: '환상적인 서해안 낙조 명소', x: 140, y: 120, color: '#D1C4E9' },
+        '무안': { spot: '회산백련지', addr: '무안군 일로읍 백련로 333', desc: '동양 최대의 백련 자생지', x: 135, y: 220, color: '#C5CAE9' },
+        '신안': { spot: '퍼플섬', addr: '신안군 안좌면 소곡리', desc: '온 세상이 보라색인 이색 섬', x: 65, y: 240, color: '#BBDEFB' },
+        '해남': { spot: '땅끝마을', addr: '해남군 송지면 땅끝마을길 42', desc: '한반도의 시작이자 끝', x: 135, y: 310, color: '#B3E5FC' },
+        '완도': { spot: '청산도', addr: '완도군 청산면', desc: '아름다운 돌담길 슬로시티', x: 185, y: 385, color: '#B2EBF2' },
+        '진도': { spot: '운림산방', addr: '진도군 의신면 운림산방로 315', desc: '한국 남종화의 성지', x: 70, y: 375, color: '#B2DFDB' },
+        '강진': { spot: '가우도 출렁다리', addr: '강진군 도암면 신기리', desc: '바다 위를 걷는 짜릿함', x: 195, y: 285, color: '#C8E6C9' },
+        '영암': { spot: '월출산 국립공원', addr: '영암군 영암읍 천황사로 280-43', desc: '기암괴석의 절경', x: 215, y: 220, color: '#DCEDC8' },
+        '화순': { spot: '고인돌 유적', addr: '화순군 도곡면 효산리', desc: '유네스코 세계문화유산', x: 290, y: 170, color: '#F0F4C3' },
+        '보성': { spot: '대한다원', addr: '보성군 보성읍 녹차로 763', desc: '초록빛 물결의 녹차밭', x: 310, y: 270, color: '#FFF9C4' },
+        '장흥': { spot: '편백숲 우드랜드', addr: '장흥군 장흥읍 우드랜드길 180', desc: '몸과 마음을 치유하는 숲', x: 255, y: 285, color: '#FFECB3' },
+        '고흥': { spot: '나로우주센터', addr: '고흥군 봉래면 하반로 490', desc: '우주를 향한 대한민국의 꿈', x: 345, y: 370, color: '#FFE0B2' },
+        '구례': { spot: '화엄사', addr: '구례군 마산면 화엄사로 539', desc: '지리산의 천년 고찰', x: 405, y: 125, color: '#FFCCBC' },
+        '곡성': { spot: '기차마을', addr: '곡성군 오곡면 기차마을로 232', desc: '증기기관차의 추억', x: 335, y: 110, color: '#D7CCC8' }
+    };
+
+    let visits = JSON.parse(localStorage.getItem('jn_visits')) || {};
+    let currentRegion = '';
+
+    function initLabels() {
+        const group = document.getElementById('labels');
+        for (let name in regions) {
+            const r = regions[name];
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', r.x);
+            text.setAttribute('y', r.y);
+            text.setAttribute('class', 'label-text');
+            text.textContent = name;
+            
+            const plus = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            plus.setAttribute('cx', r.x + 20);
+            plus.setAttribute('cy', r.y - 12);
+            plus.setAttribute('r', 8);
+            plus.setAttribute('class', 'btn-plus');
+            plus.onclick = (e) => { e.stopPropagation(); addVisit(name); };
+
+            const plusText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            plusText.setAttribute('x', r.x + 20);
+            plusText.setAttribute('y', r.y - 8.5);
+            plusText.setAttribute('fill', 'white');
+            plusText.setAttribute('font-size', '10');
+            plusText.setAttribute('text-anchor', 'middle');
+            plusText.textContent = '+';
+            plusText.style.pointerEvents = 'none';
+
+            g.appendChild(text);
+            g.appendChild(plus);
+            g.appendChild(plusText);
+            group.appendChild(g);
+        }
+        updateMapStyles();
+    }
+
+    function addVisit(name) {
+        visits[name] = (visits[name] || 0) + 1;
+        save();
+        updateMapStyles();
+    }
+
+    function updateMapStyles() {
+        for (let name in regions) {
+            const path = document.getElementById('path-' + name);
+            const count = visits[name] || 0;
+            if (count > 0) {
+                path.setAttribute('fill', regions[name].color);
+                path.setAttribute('stroke', '#3b82f6');
+                path.setAttribute('stroke-width', '2');
+            } else {
+                path.setAttribute('fill', '#e2e8f0');
+                path.setAttribute('stroke', '#fff');
+            }
+        }
+    }
+
+    function showDetail(name) {
+        currentRegion = name;
+        const r = regions[name];
+        document.getElementById('detail-name').textContent = name;
+        document.getElementById('detail-spot').textContent = r.spot;
+        document.getElementById('detail-addr').textContent = r.addr;
+        document.getElementById('detail-desc').textContent = r.desc;
+        document.getElementById('detail-count').textContent = visits[name] || 0;
+        document.getElementById('detail-overlay').style.display = 'flex';
+    }
+
+    function closeDetail() {
+        document.getElementById('detail-overlay').style.display = 'none';
+    }
+
+    function updateCount(val) {
+        visits[currentRegion] = Math.max(0, (visits[currentRegion] || 0) + val);
+        document.getElementById('detail-count').textContent = visits[currentRegion];
+        save();
+        updateMapStyles();
+    }
+
+    function save() {
+        localStorage.setItem('jn_visits', JSON.stringify(visits));
+    }
+
+    function resetData() {
+        if(confirm('모든 방문 기록을 삭제할까요?')) {
+            visits = {};
+            save();
+            updateMapStyles();
+        }
+    }
+
+    function saveAsImage() {
+        html2canvas(document.querySelector("#capture-area")).then(canvas => {
+            const link = document.createElement('a');
+            link.download = '나의_전남_여행지도.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+    }
+
+    function copyShareLink() {
+        const data = btoa(JSON.stringify(visits));
+        const url = window.location.origin + window.location.pathname + '?share=' + data;
+        navigator.clipboard.writeText(url).then(() => {
+            alert('공유 링크가 복사되었습니다! 친구에게 보내보세요.');
+        });
+    }
+
+    // 초기 로드 시 공유 데이터 확인
+    window.onload = () => {
+        const params = new URLSearchParams(window.location.search);
+        const shareData = params.get('share');
+        if (shareData) {
+            try {
+                const imported = JSON.parse(atob(shareData));
+                if (confirm('친구의 여행 기록을 불러올까요? (현재 내 기록은 덮어씌워집니다)')) {
+                    visits = imported;
+                    save();
+                }
+            } catch(e) {}
+        }
+        initLabels();
+    };
+</script>
+
+</body>
+</html>
